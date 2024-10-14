@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Discussion Publique</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #messages {
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #input, #username, #fileInput {
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            width: 100%;
+            max-width: 620px;
+            padding: 10px;
+            border: none;
+            background-color: #333;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .message {
+            animation: fadeIn 0.5s;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.2.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.0/firebase-database.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Your web app's Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyCQGnGq3qbVpv6QRkCxnD4H7-vnLBGjHf8",
+                authDomain: "chat-en-ligne-8d2a8.firebaseapp.com",
+                projectId: "chat-en-ligne-8d2a8",
+                storageBucket: "chat-en-ligne-8d2a8.appspot.com",
+                messagingSenderId: "678433107366",
+                appId: "1:678433107366:web:d5a4721042be84dbb5f367",
+                measurementId: "G-ND2RF0VPYB"
+            };
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+
+            const messagesDiv = document.getElementById('messages');
+            const inputField = document.getElementById('input');
+            const usernameField = document.getElementById('username');
+            const fileInput = document.getElementById('fileInput');
+
+            function sendMessage() {
+                const message = inputField.value;
+                const username = usernameField.value || "Anonyme";
+                const file = fileInput.files[0];
+                let fileURL = "";
+
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        fileURL = e.target.result;
+                        sendToFirebase(username, message, fileURL);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    sendToFirebase(username, message, fileURL);
+                }
+
+                inputField.value = '';
+                fileInput.value = '';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            function sendToFirebase(username, message, fileURL) {
+                database.ref('messages').push().set({
+                    username: username,
+                    message: message,
+                    file: fileURL
+                });
+            }
+
+            // Écoute les nouveaux messages ajoutés à Firebase
+            database.ref('messages').on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+                if (data.file) {
+                    const fileElement = document.createElement('div');
+                    if (data.file.startsWith('data:image')) {
+                        fileElement.innerHTML = `<img src="${data.file}" alt="Image" style="max-width: 200px;"/>`;
+                    } else if (data.file.startsWith('data:video')) {
+                        fileElement.innerHTML = `<video controls style="max-width: 200px;"><source src="${data.file}" type="video/mp4"></video>`;
+                    }
+                    messageElement.appendChild(fileElement);
+                }
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+
+            document.querySelector("button").addEventListener("click", sendMessage);
+        });
+    </script>
+</head>
+<body>
+    <h1>Discussion Publique</h1>
+    <input type="text" id="username" placeholder="Entrez votre nom"/>
+    <div id="messages"></div>
+    <input type="text" id="input" placeholder="Tapez votre message ici..."/>
+    <input type="file" id="fileInput"/>
+    <button>Envoyer</button>
+</body>
+</html>
